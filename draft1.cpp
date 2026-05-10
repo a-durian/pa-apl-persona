@@ -64,6 +64,18 @@ const vector<string> skillItems = {"masukunda", "dekaja", "debilitate", "charge"
 
 vector<int> hargaSkill = {500, 600, 1000, 1200, 1500};
 
+struct CombineRule {  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< adrian
+    vector<string> bahan;   // 4 skill yang dibutuhkan
+    string hasilSkill;      // skill spesial yang dihasilkan
+};
+
+vector<CombineRule> combineRules = {
+    {{"masukunda", "dekaja", "charge", "concentrate"}, "megidolaon"},
+    {{"debilitate", "charge", "concentrate", "dekaja"}, "salvation"},
+    {{"masukunda", "debilitate", "charge", "dekaja"}, "thermopylae"},
+    {{"masukunda", "debilitate", "concentrate", "dekaja"}, "absorb fire"}
+};  // ------------------------------------------------------------
+
 vector<FusionRule> fusionRules = {
     {"fool", "magician", "hierophant"},
     {"fool", "priestess", "magician"},
@@ -1002,6 +1014,89 @@ void beliSkill(LevelUser* userPtr, personaUser* profilePtr) {
     cout << "Sisa uang: " << userPtr->uang << endl;
 }
 
+void combineSkill(personaUser* profilePtr) {
+    if ((int)profilePtr->inventorySkill.size() < 4) {
+        cout << "Kamu butuh minimal 4 skill di inventory untuk combine!" << endl;
+        cout << "Skill inventory kamu saat ini: " << profilePtr->inventorySkill.size() << endl;
+        return;
+    }
+
+    cout << "\n=== Inventory Skill Kamu ===" << endl;
+    for (int i = 0; i < (int)profilePtr->inventorySkill.size(); i++) {
+        cout << i + 1 << ". " << profilePtr->inventorySkill[i] << endl;
+    }
+
+    vector<int> indexDipilih;
+    vector<string> skillDipilih;
+
+    cout << "\nPilih 4 skill untuk digabung:" << endl;
+    while ((int)skillDipilih.size() < 4) {
+        int pilih = cekInteger("Pilih skill ke-" + to_string(skillDipilih.size() + 1) + ": ");
+        pilih--;
+
+        if (pilih < 0 || pilih >= (int)profilePtr->inventorySkill.size()) {
+            cout << "Nomor tidak valid!" << endl;
+            continue;
+        }
+
+        bool sudahDipilih = false;
+        for (int idx : indexDipilih) {
+            if (idx == pilih) {
+                sudahDipilih = true;
+                break;
+            }
+        }
+        if (sudahDipilih) {
+            cout << "Skill itu sudah dipilih!" << endl;
+            continue;
+        }
+
+        indexDipilih.push_back(pilih);
+        skillDipilih.push_back(profilePtr->inventorySkill[pilih]);
+        cout << profilePtr->inventorySkill[pilih] << " dipilih." << endl;
+    }
+
+    string hasilSkill = "";
+    for (int i = 0; i < (int)combineRules.size(); i++) {
+        vector<string> bahan = combineRules[i].bahan;
+
+        bool cocok = true;
+        for (int j = 0; j < (int)bahan.size(); j++) {
+            bool ketemu = false;
+            for (int k = 0; k < (int)skillDipilih.size(); k++) {
+                if (bahan[j] == skillDipilih[k]) {
+                    ketemu = true;
+                    break;
+                }
+            }
+            if (!ketemu) {
+                cocok = false;
+                break;
+            }
+        }
+
+        if (cocok) {
+            hasilSkill = combineRules[i].hasilSkill;
+            break;
+        }
+    }
+
+    if (hasilSkill == "") {
+        cout << "\nKombinasi skill tidak menghasilkan apa-apa. Skill tidak hilang." << endl;
+        return;
+    }
+    sort(indexDipilih.begin(), indexDipilih.end(), greater<int>());
+    for (int idx : indexDipilih) {
+        profilePtr->inventorySkill.erase(profilePtr->inventorySkill.begin() + idx);
+    }
+
+    // Tambahkan skill spesial ke inventory
+    profilePtr->inventorySkill.push_back(hasilSkill);
+
+    cout << "\n=== COMBINE BERHASIL! ===" << endl;
+    cout << "Kamu mendapatkan skill spesial: " << hasilSkill << "!" << endl;
+}
+
 void userMenu(int userIndex) { 
     int profilIndex = cariAtauBuatProfil(users[userIndex].nama);
 
@@ -1020,6 +1115,7 @@ void userMenu(int userIndex) {
         cout << "6. sorting persona" << endl;
         cout << "7. Hapus persona" << endl;
         cout << "8. Beli skill item" << endl;
+        cout << "9. Combine Skill" << endl;
         cout << "0. Keluar" << endl;
         cout << "pilihan : ";
         pilihan = cekInteger("masukkan pilihan : ");
@@ -1032,7 +1128,8 @@ void userMenu(int userIndex) {
             case 5: updateSkillUser(currentUserProfilePtr); break; 
             case 6: sortingPersona(&(currentUserProfilePtr->listPersona), &(currentUserPtr->status)); break; 
             case 7: hapusPersonaUser(currentUserProfilePtr); break;
-            case 8: beliSkill(currentUserPtr, currentUserProfilePtr); break; 
+            case 8: beliSkill(currentUserPtr, currentUserProfilePtr); break;
+            case 9: combineSkill(currentUserProfilePtr); break;
             case 0: cout << "Log out" << endl; break;
             default: cout << "pilihan tidak valid." << endl;
         }
