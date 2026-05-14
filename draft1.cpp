@@ -64,18 +64,6 @@ const vector<string> skillItems = {"masukunda", "dekaja", "debilitate", "charge"
 
 vector<int> hargaSkill = {500, 600, 1000, 1200, 1500};
 
-struct CombineRule {  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< adrian
-    vector<string> bahan;   // 4 skill yang dibutuhkan
-    string hasilSkill;      // skill spesial yang dihasilkan
-};
-
-vector<CombineRule> combineRules = {
-    {{"masukunda", "dekaja", "charge", "concentrate"}, "megidolaon"},
-    {{"debilitate", "charge", "concentrate", "dekaja"}, "salvation"},
-    {{"masukunda", "debilitate", "charge", "dekaja"}, "thermopylae"},
-    {{"masukunda", "debilitate", "concentrate", "dekaja"}, "absorb fire"}
-};  // ------------------------------------------------------------
-
 vector<FusionRule> fusionRules = {
     {"fool", "magician", "hierophant"},
     {"fool", "priestess", "magician"},
@@ -84,6 +72,20 @@ vector<FusionRule> fusionRules = {
     {"magician", "empress", "hanged"},
     {"priestess", "empress", "temperance"}
 };
+
+struct SpecialFusionRule { //-------------------------------------------------------------------+
+    string arcana1;
+    string arcana2; 
+    string arcana3;
+    string hasilArcana;
+};
+
+vector<SpecialFusionRule> specialFusionRules = {  
+    {"fool", "magician", "priestess", "temperance"},
+    {"fool", "magician", "empress", "justice"}, 
+    {"fool", "hierophant", "star", "hanged"},
+    {"magician", "priestess", "empress", "star"}
+}; //---------------------------------------------------------------------------------------------+
 
 string cariHasilArcana(string arcana1, string arcana2) {
     for (int i = 0; i < fusionRules.size(); i++) {
@@ -1014,87 +1016,140 @@ void beliSkill(LevelUser* userPtr, personaUser* profilePtr) {
     cout << "Sisa uang: " << userPtr->uang << endl;
 }
 
-void combineSkill(personaUser* profilePtr) {
-    if ((int)profilePtr->inventorySkill.size() < 4) {
-        cout << "Kamu butuh minimal 4 skill di inventory untuk combine!" << endl;
-        cout << "Skill inventory kamu saat ini: " << profilePtr->inventorySkill.size() << endl;
+void fusePersonaSpecial(personaUser* profilePtr) { //------------------------------------------------+
+    if ((int)profilePtr->listPersona.size() < 3) {
+        cout << "Butuh minimal 3 persona untuk Special Fusion!" << endl;
         return;
     }
 
-    cout << "\n=== Inventory Skill Kamu ===" << endl;
-    for (int i = 0; i < (int)profilePtr->inventorySkill.size(); i++) {
-        cout << i + 1 << ". " << profilePtr->inventorySkill[i] << endl;
+    lihatPersonaUser(profilePtr);
+
+    int p1 = cekInteger("Pilih persona pertama : ") - 1;
+    int p2 = cekInteger("Pilih persona kedua   : ") - 1;
+    int p3 = cekInteger("Pilih persona ketiga  : ") - 1;
+
+    int size = (int)profilePtr->listPersona.size();
+    if (p1 < 0 || p1 >= size || p2 < 0 || p2 >= size || p3 < 0 || p3 >= size ||
+        p1 == p2 || p1 == p3 || p2 == p3) {
+        cout << "Nomor persona tidak valid!" << endl;
+        return;
     }
 
-    vector<int> indexDipilih;
-    vector<string> skillDipilih;
+    persona parent1 = profilePtr->listPersona[p1];
+    persona parent2 = profilePtr->listPersona[p2];
+    persona parent3 = profilePtr->listPersona[p3];
 
-    cout << "\nPilih 4 skill untuk digabung:" << endl;
-    while ((int)skillDipilih.size() < 4) {
-        int pilih = cekInteger("Pilih skill ke-" + to_string(skillDipilih.size() + 1) + ": ");
-        pilih--;
+    int targetLevel = (parent1.level + parent2.level + parent3.level) / 3 + 1;
 
-        if (pilih < 0 || pilih >= (int)profilePtr->inventorySkill.size()) {
-            cout << "Nomor tidak valid!" << endl;
-            continue;
-        }
-
-        bool sudahDipilih = false;
-        for (int idx : indexDipilih) {
-            if (idx == pilih) {
-                sudahDipilih = true;
-                break;
-            }
-        }
-        if (sudahDipilih) {
-            cout << "Skill itu sudah dipilih!" << endl;
-            continue;
-        }
-
-        indexDipilih.push_back(pilih);
-        skillDipilih.push_back(profilePtr->inventorySkill[pilih]);
-        cout << profilePtr->inventorySkill[pilih] << " dipilih." << endl;
-    }
-
-    string hasilSkill = "";
-    for (int i = 0; i < (int)combineRules.size(); i++) {
-        vector<string> bahan = combineRules[i].bahan;
+    string hasilArcana = "";
+    for (int i = 0; i < (int)specialFusionRules.size(); i++) {
+        vector<string> arcanas = {
+            specialFusionRules[i].arcana1,
+            specialFusionRules[i].arcana2,
+            specialFusionRules[i].arcana3
+        };
+        vector<string> inputArcanas = {parent1.arcana, parent2.arcana, parent3.arcana};
 
         bool cocok = true;
-        for (int j = 0; j < (int)bahan.size(); j++) {
+        for (int j = 0; j < (int)arcanas.size(); j++) {
             bool ketemu = false;
-            for (int k = 0; k < (int)skillDipilih.size(); k++) {
-                if (bahan[j] == skillDipilih[k]) {
+            for (int k = 0; k < (int)inputArcanas.size(); k++) {
+                if (arcanas[j] == inputArcanas[k]) {
                     ketemu = true;
+                    inputArcanas.erase(inputArcanas.begin() + k); // menghindari double match
                     break;
                 }
             }
-            if (!ketemu) {
-                cocok = false;
-                break;
-            }
+            if (!ketemu) { cocok = false; break; }
         }
 
         if (cocok) {
-            hasilSkill = combineRules[i].hasilSkill;
+            hasilArcana = specialFusionRules[i].hasilArcana;
             break;
         }
     }
 
-    if (hasilSkill == "") {
-        cout << "\nKombinasi skill tidak menghasilkan apa-apa. Skill tidak hilang." << endl;
+    if (hasilArcana == "") {
+        cout << "Kombinasi arcana tidak tersedia untuk Special Fusion." << endl;
         return;
     }
-    sort(indexDipilih.begin(), indexDipilih.end(), greater<int>());
-    for (int idx : indexDipilih) {
-        profilePtr->inventorySkill.erase(profilePtr->inventorySkill.begin() + idx);
+
+    int indexHasil = cariPersonaFusionLevel(hasilArcana, targetLevel);
+    if (indexHasil == -1) {
+        cout << "Tidak ada persona dengan arcana hasil: " << hasilArcana << endl;
+        return;
     }
 
-    // Tambahkan skill spesial ke inventory
-    profilePtr->inventorySkill.push_back(hasilSkill);
+    persona hasilFusion = personaUtama[indexHasil];
 
-    cout << "\n=== COMBINE BERHASIL! ===" << endl;
-    cout << "Kamu mendapatkan skill spesial: " << hasilSkill << "!" << endl;
+    vector<string> semuaSkill;
+    for (int i = 0; i < (int)parent1.skills.size(); i++)
+        if (!skillSudahAda(semuaSkill, parent1.skills[i]))
+            semuaSkill.push_back(parent1.skills[i]);
+    for (int i = 0; i < (int)parent2.skills.size(); i++)
+        if (!skillSudahAda(semuaSkill, parent2.skills[i]))
+            semuaSkill.push_back(parent2.skills[i]);
+    for (int i = 0; i < (int)parent3.skills.size(); i++)
+        if (!skillSudahAda(semuaSkill, parent3.skills[i]))
+            semuaSkill.push_back(parent3.skills[i]);
+
+    cout << "\n=== Pilih Skill Warisan (maks 4) ===" << endl;
+    for (int i = 0; i < (int)semuaSkill.size(); i++)
+        cout << i + 1 << ". " << semuaSkill[i] << endl;
+
+    vector<string> skillWarisanDipilih;
+    int jumlahMaks = min(4, (int)semuaSkill.size());
+
+    while ((int)skillWarisanDipilih.size() < jumlahMaks) {
+        int pilih = cekInteger("Pilih skill (0 jika selesai) : ");
+        if (pilih == 0) break;
+        pilih--;
+
+        if (pilih < 0 || pilih >= (int)semuaSkill.size()) {
+            cout << "Nomor tidak valid!" << endl;
+            continue;
+        }
+        if (skillSudahAda(skillWarisanDipilih, semuaSkill[pilih])) {
+            cout << "Skill sudah dipilih!" << endl;
+            continue;
+        }
+        skillWarisanDipilih.push_back(semuaSkill[pilih]);
+        cout << semuaSkill[pilih] << " ditambahkan." << endl;
+    }
+
+    for (int i = 0; i < (int)skillWarisanDipilih.size(); i++) {
+        if (!skillSudahAda(hasilFusion.skills, skillWarisanDipilih[i]) &&
+            (int)hasilFusion.skills.size() < max_skill_persona)
+            hasilFusion.skills.push_back(skillWarisanDipilih[i]);
+    }
+
+    // previewnya
+    cout << "\n===== PREVIEW SPECIAL FUSION =====" << endl;
+    cout << "Parent 1 : " << parent1.nama << " (" << parent1.arcana << ")" << endl;
+    cout << "Parent 2 : " << parent2.nama << " (" << parent2.arcana << ")" << endl;
+    cout << "Parent 3 : " << parent3.nama << " (" << parent3.arcana << ")" << endl;
+    cout << "Hasil    : " << hasilFusion.nama << " | Level " << hasilFusion.level << " | Arcana " << hasilFusion.arcana << endl;
+    cout << "Skill    : ";
+    for (int i = 0; i < (int)hasilFusion.skills.size(); i++)
+        cout << hasilFusion.skills[i] << " ";
+    cout << "\n==================================" << endl;
+
+    char jawaban;
+    cout << "Lanjutkan Special Fusion? y/n : ";
+    cin >> jawaban;
+    if (jawaban != 'y' && jawaban != 'Y') {
+        cout << "Special Fusion dibatalkan." << endl;
+        return;
+    }
+
+    profilePtr->listPersona.push_back(hasilFusion);
+
+    vector<int> idxHapus = {p1, p2, p3};
+    sort(idxHapus.begin(), idxHapus.end(), greater<int>());
+    for (int idx : idxHapus)
+        profilePtr->listPersona.erase(profilePtr->listPersona.begin() + idx);
+
+    cout << "\nSpecial Fusion berhasil! Mendapatkan: " << hasilFusion.nama << endl;
 }
 
 void userMenu(int userIndex) { 
@@ -1115,7 +1170,7 @@ void userMenu(int userIndex) {
         cout << "6. sorting persona" << endl;
         cout << "7. Hapus persona" << endl;
         cout << "8. Beli skill item" << endl;
-        cout << "9. Combine Skill" << endl;
+        cout << "9. Special Fusion" << endl;
         cout << "0. Keluar" << endl;
         cout << "pilihan : ";
         pilihan = cekInteger("masukkan pilihan : ");
@@ -1129,7 +1184,7 @@ void userMenu(int userIndex) {
             case 6: sortingPersona(&(currentUserProfilePtr->listPersona), &(currentUserPtr->status)); break; 
             case 7: hapusPersonaUser(currentUserProfilePtr); break;
             case 8: beliSkill(currentUserPtr, currentUserProfilePtr); break;
-            case 9: combineSkill(currentUserProfilePtr); break;
+            case 9: fusePersonaSpecial(currentUserProfilePtr); break;
             case 0: cout << "Log out" << endl; break;
             default: cout << "pilihan tidak valid." << endl;
         }
